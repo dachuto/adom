@@ -1,0 +1,113 @@
+#!/usr/bin/expect
+set save_name "PIO.svg"
+set memorial "pio.flg"
+set temp_folder_base "/tmp/adom/save"
+
+set timeout 3
+
+proc ACTION {} {
+send "D"
+sleep 0.05
+send "m"
+sleep 0.05
+send " "
+sleep 0.05
+send " "
+sleep 0.05
+#send "z"
+}
+
+proc ACTION_STAIRS {} {
+send ">"
+sleep 0.05
+send " "
+sleep 0.05
+send " "
+sleep 0.05
+send " "
+sleep 0.05
+#send "z"
+}
+
+proc INTRO {} {
+expect "lay the Game"
+send "p"
+expect -indices -re {\[(.)\] Exit}
+send "$expect_out(1,string)"
+}
+
+proc MAIN_MENU {} {
+expect "choice"
+}
+
+proc RESTORE {} {
+send l
+expect "Select a letter"
+send a
+}
+
+proc SAVE {} {
+send "S"
+expect "Really"
+send "y"
+sleep 0.05
+send " "
+expect "SPACE"
+send " "
+}
+
+proc QUIT {} {
+send "q"
+expect eof
+}
+
+for {set x 0} {$x<200} {incr x} {
+set temp_folder "$temp_folder_base$x"
+
+exec bash load_save.sh "$save_name"
+
+spawn ./adom_ascii
+INTRO
+MAIN_MENU
+RESTORE
+
+ACTION
+
+SAVE
+MAIN_MENU
+QUIT
+
+exec bash store_save.sh "$save_name" "$temp_folder"
+
+spawn ./adom_ascii
+INTRO
+MAIN_MENU
+RESTORE
+
+send "Qyz "
+expect "Your choice:"
+
+send "i"
+expect "Exit"
+send "v"
+set items ""
+expect "Filter" { append items $expect_out(buffer) }
+send "z"
+expect "Exit"
+send "z"
+expect "Your choice:"
+#memorial
+send "f "
+expect "Your choice:"
+QUIT
+
+set items_list_file [open "items.txt" w]
+puts $items_list_file "$items"
+close $items_list_file
+
+exec mv $memorial $temp_folder
+
+set status [catch {exec bash ./store_output.sh "items.txt" $temp_folder} output]
+
+}
+
